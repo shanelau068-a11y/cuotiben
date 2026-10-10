@@ -44,6 +44,7 @@
   .qcard { background:#fff; border-radius:18px; padding:20px; box-shadow:0 4px 14px rgba(180,120,40,.12); }
   .qtype { display:inline-block; font-size:12px; background:#fef3e0; color:#c07a2a; border-radius:99px; padding:4px 12px; margin-bottom:10px; }
   .stem { font-size:19px; line-height:1.7; margin-bottom:16px; }
+  .stem-img { width:100%; border-radius:12px; margin:0 0 14px; display:block; }
   .opt {
     display:flex; align-items:center; width:100%; text-align:left;
     background:#fffdf7; border:2px solid #f0e2c8; border-radius:14px;
@@ -126,6 +127,7 @@
     <div class="qcard">
       <span class="qtype" id="qType">选择题</span>
       <div class="stem" id="qStem"></div>
+      <img class="stem-img" id="qStemImg" style="display:none">
       <div id="qOpts"></div>
       <div id="qFeed" class="hide"></div>
       <button id="qNext" class="next-btn hide" onclick="nextQ()">下一题 →</button>
@@ -156,6 +158,13 @@
 </div>
 
 <script src="questions.js"></script>
+<script src="q-text.js"></script>
+<script src="q-img1.js"></script>
+<script src="q-img2.js"></script>
+<script src="q-img3.js"></script>
+<script src="q-img4.js"></script>
+<script src="q-img5.js"></script>
+<script src="q-img6.js"></script>
 <script>
 const TYPE_NAME = { choice:"选择题", judge:"判断题", fill:"选词填空" };
 const LETTERS = ["A","B","C","D"];
@@ -194,6 +203,9 @@ function renderQ(){
   document.getElementById("pFill").style.width = (idx/order.length*100) + "%";
   document.getElementById("qType").textContent = TYPE_NAME[q.type] || "选择题";
   document.getElementById("qStem").textContent = q.stem;
+  const stemImg = document.getElementById("qStemImg");
+  if(q.stemImg){ stemImg.src = q.stemImg; stemImg.style.display = "block"; }
+  else { stemImg.style.display = "none"; }
   const box = document.getElementById("qOpts");
   box.innerHTML = "";
   q.options.forEach((o,i)=>{
@@ -271,6 +283,7 @@ function showReview(){
     d.innerHTML =
       `<div class="date-tag">${q.date} · ${TYPE_NAME[q.type]||""}</div>` +
       `<div class="stem">${q.stem}</div>` +
+      (q.stemImg ? `<img class="stem-img" src="${q.stemImg}">` : "") +
       `<div class="ans">✅ 正确答案：${ansText}</div>` + imgs +
       `<div class="exp">📖 ${q.explain}</div>`;
     list.appendChild(d);
