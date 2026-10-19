@@ -95,6 +95,18 @@
   .rev-item .exp { font-size:15px; line-height:1.7; color:#6b5638; background:#fffdf4; border-left:4px solid #f0c987; padding:10px 12px; border-radius:0 10px 10px 0; }
   .rev-item img { width:100%; border-radius:10px; margin:8px 0; }
   .date-tag { font-size:12px; color:#a3763f; background:#fef3e0; border-radius:99px; padding:2px 10px; display:inline-block; margin-bottom:8px; }
+
+  /* 折叠 */
+  .fold-sec { background:#fff; border-radius:18px; padding:16px 18px; margin:18px 0; box-shadow:0 4px 14px rgba(180,120,40,.12); }
+  .fold-head { display:flex; justify-content:space-between; align-items:center; cursor:pointer; font-size:16px; font-weight:700; color:#8a6d4b; }
+  .fold-head .cnt { font-size:13px; background:#fef3e0; border-radius:99px; padding:2px 10px; color:#c07a2a; }
+  .fold-item { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-top:1px dashed #f0e2c8; font-size:14px; }
+  .fold-item .t { flex:1; margin-right:8px; color:#6b5638; line-height:1.5; }
+  .mini-btn { flex:none; border:2px solid #f0d9b5; background:#fff; color:#b3541e; border-radius:99px; padding:6px 14px; font-size:13px; font-weight:700; cursor:pointer; }
+  .mini-btn:active { transform:scale(.95); }
+  .unfold-all { display:block; width:100%; margin-top:10px; border:none; border-radius:14px; padding:12px; font-size:15px; font-weight:700; cursor:pointer; background:linear-gradient(135deg,#ffb347,#ff8c42); color:#fff; }
+  .fold-toggle { margin-top:10px; }
+  .stat-card.four div { flex:1; }
 </style>
 </head>
 <body>
@@ -107,14 +119,22 @@
       <h1>湘桥区2026年<br>诗词大赛错题本</h1>
       <p>古诗词专项练习 · 每天进步一点点，加油！</p>
     </div>
-    <div class="stat-card">
+    <div class="stat-card four">
       <div><div class="num" id="stTotal">0</div><div class="lbl">错题总数</div></div>
+      <div><div class="num" id="stFold">0</div><div class="lbl">已折叠</div></div>
       <div><div class="num" id="stBest">-</div><div class="lbl">历史最佳</div></div>
       <div><div class="num" id="stDays">0</div><div class="lbl">坚持天数</div></div>
     </div>
     <button class="big-btn btn-go" onclick="startQuiz(false)">▶ 开始练习</button>
     <button class="big-btn btn-go" onclick="startQuiz(true)" style="background:linear-gradient(135deg,#7ec8e3,#4aa8de)">🔀 随机抽题练习</button>
     <button class="big-btn btn-review" onclick="showReview()">📖 复习讲解</button>
+    <div class="fold-sec">
+      <div class="fold-head" onclick="toggleFoldSec()">
+        <span id="foldHeadT">📦 已折叠的题目（暂时不用练）</span>
+        <span class="cnt" id="foldHeadC">0</span>
+      </div>
+      <div id="foldList" class="hide"></div>
+    </div>
   </div>
 
   <!-- 答题页 -->
@@ -175,6 +195,41 @@ let order = [], idx = 0, score = 0, answered = false;
 function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function optLabel(o){ return typeof o === "string" ? o : "（看图选择）"; }
 
+/* 每题练习记录：{ok:答对次数, no:答错次数, streak:连对次数, folded:是否折叠} */
+function getStats(){ try{ return JSON.parse(localStorage.getItem("cuotiben_stats")||"{}"); }catch(e){ return {}; } }
+function saveStats(s){ localStorage.setItem("cuotiben_stats", JSON.stringify(s)); }
+function isFolded(q){ const s=getStats(); return !!(s[q.id] && s[q.id].folded); }
+function foldQ(id){ const s=getStats(); const e=s[id]||{ok:0,no:0,streak:0}; e.folded=true; s[id]=e; saveStats(s); }
+function unfoldQ(id){ const s=getStats(); if(s[id]){ s[id].folded=false; saveStats(s); } }
+function unfoldAll(){ const s=getStats(); Object.keys(s).forEach(id=>{ s[id].folded=false; }); saveStats(s); renderStats(); renderFoldList(); if(typeof showReview!=="undefined" && !document.getElementById("review").classList.contains("hide")) showReview(); }
+function foldedList(){ return QUESTIONS.filter(q=>isFolded(q)); }
+
+function toggleFoldSec(){
+  const el=document.getElementById("foldList");
+  el.classList.toggle("hide");
+  if(!el.classList.contains("hide")) renderFoldList();
+}
+function renderFoldList(){
+  const list=foldedList();
+  const box=document.getElementById("foldList");
+  document.getElementById("foldHeadC").textContent=list.length;
+  if(list.length===0){ box.innerHTML=`<div style="padding:12px 0;color:#a3763f;font-size:14px;">还没有折叠的题目。某道题连续答对 3 次会自动折叠，也可以去复习页手动折叠。</div>`; return; }
+  box.innerHTML="";
+  list.forEach(q=>{
+    const d=document.createElement("div");
+    d.className="fold-item";
+    d.innerHTML=`<div class="t">${q.stem.slice(0,42)}${q.stem.length>42?"…":""}</div>`;
+    const b=document.createElement("button");
+    b.className="mini-btn"; b.textContent="展开";
+    b.onclick=()=>{ unfoldQ(q.id); renderStats(); renderFoldList(); };
+    d.appendChild(b); box.appendChild(d);
+  });
+  const all=document.createElement("button");
+  all.className="unfold-all"; all.textContent="📝 考试前复习：全部展开";
+  all.onclick=()=>{ unfoldAll(); };
+  box.appendChild(all);
+}
+
 function goHome(){
   ["quiz","result","review"].forEach(id=>document.getElementById(id).classList.add("hide"));
   document.getElementById("home").classList.remove("hide");
@@ -182,14 +237,18 @@ function goHome(){
 }
 function renderStats(){
   document.getElementById("stTotal").textContent = QUESTIONS.length;
+  document.getElementById("stFold").textContent = foldedList().length;
   const days = new Set(QUESTIONS.map(q=>q.date)).size;
   document.getElementById("stDays").textContent = days;
   const best = localStorage.getItem("cuotiben_best");
   document.getElementById("stBest").textContent = best === null ? "-" : best + "%";
+  document.getElementById("foldHeadC").textContent = foldedList().length;
 }
 
 function startQuiz(random){
-  order = QUESTIONS.map((_,i)=>i);
+  const active = QUESTIONS.map((_,i)=>i).filter(i=>!isFolded(QUESTIONS[i]));
+  if(active.length===0){ alert("题目都折叠起来啦！点开下方“已折叠的题目”展开后再练吧～"); return; }
+  order = active;
   if(random) shuffle(order);
   idx = 0; score = 0;
   document.getElementById("home").classList.add("hide");
@@ -230,6 +289,12 @@ function choose(i){
   const btns = document.getElementById("qOpts").children;
   const ok = (i === q.answer);
   if(ok) score++;
+  /* 记录每题战绩：连对3次自动折叠；答错则连对清零并自动展开 */
+  let justFolded=false;
+  const st=getStats(); const e=st[q.id]||{ok:0,no:0,streak:0,folded:false};
+  if(ok){ e.ok++; e.streak++; if(e.streak>=3 && !e.folded){ e.folded=true; justFolded=true; } }
+  else { e.no++; e.streak=0; e.folded=false; }
+  st[q.id]=e; saveStats(st);
   [...btns].forEach((b,j)=>{
     b.classList.add("locked");
     if(j === q.answer) b.classList.add("correct");
@@ -240,6 +305,7 @@ function choose(i){
   feed.className = "feedback " + (ok ? "good" : "bad");
   feed.innerHTML =
     `<div class="ft">${ok ? "🎉 答对啦！" : "💪 再想想，正确答案是 " + LETTERS[q.answer]}</div>` +
+    (justFolded ? `<div class="last-wrong">📦 这道题你已经连续答对 3 次，暂时折叠起来啦！考前再展开复习～</div>` : "") +
     (q.kidAnswer !== undefined && q.kidAnswer !== q.answer
       ? `<div class="last-wrong">上次你选了 ${LETTERS[q.kidAnswer]}，这次别再错啦～</div>` : "") +
     `<div>📖 <b>讲解：</b>${q.explain}</div>`;
@@ -283,11 +349,16 @@ function showReview(){
       if(typeof o !== "string") imgs += `<div class="date-tag">选项 ${LETTERS[i]}</div><img src="${o.img}">`;
     });
     d.innerHTML =
-      `<div class="date-tag">${q.date} · ${TYPE_NAME[q.type]||""}</div>` +
+      `<div class="date-tag">${q.date} · ${TYPE_NAME[q.type]||""}${isFolded(q)?" · 📦已折叠":""}</div>` +
       `<div class="stem">${q.stem}</div>` +
       (q.stemImg ? `<img class="stem-img" src="${q.stemImg}">` : "") +
       `<div class="ans">✅ 正确答案：${ansText}</div>` + imgs +
       `<div class="exp">📖 ${q.explain}</div>`;
+    const fb=document.createElement("button");
+    fb.className="mini-btn fold-toggle";
+    fb.textContent=isFolded(q)?"↗ 展开此题":"📦 折叠此题";
+    fb.onclick=()=>{ isFolded(q)?unfoldQ(q.id):foldQ(q.id); renderStats(); showReview(); };
+    d.appendChild(fb);
     list.appendChild(d);
   });
   ["home","quiz","result"].forEach(id=>document.getElementById(id).classList.add("hide"));
