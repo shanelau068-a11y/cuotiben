@@ -211,6 +211,23 @@ function unfoldQ(id){ const s=getStats(); if(s[id]){ s[id].folded=false; saveSta
 function unfoldAll(){ const s=getStats(); Object.keys(s).forEach(id=>{ s[id].folded=false; }); saveStats(s); renderStats(); renderFoldList(); if(typeof showReview!=="undefined" && !document.getElementById("review").classList.contains("hide")) showReview(); }
 function foldedList(){ return QUESTIONS.filter(q=>isFolded(q)); }
 
+/* 重练机制：题目带 reopen 标记时，表示孩子在学校新测验里又错了一次。
+   第一次打开就把它的折叠清掉、连对清零，让它重新回到测验里；
+   reopenApplied 记下已处理过的标记，之后再打开不再重复清零，
+   孩子重新连对 3 次后可以再次折叠。 */
+function applyReopen(){
+  const s=getStats(); let changed=false;
+  QUESTIONS.forEach(q=>{
+    if(!q.reopen) return;
+    const e=s[q.id];
+    if(!e || e.reopenApplied===q.reopen) return;
+    e.folded=false; e.streak=0; e.reopenApplied=q.reopen;
+    changed=true;
+  });
+  if(changed) saveStats(s);
+}
+applyReopen();
+
 function toggleFoldSec(){
   const el=document.getElementById("foldList");
   el.classList.toggle("hide");
