@@ -128,6 +128,7 @@
     <button class="big-btn btn-go" onclick="startQuiz(false)">▶ 开始练习</button>
     <button class="big-btn btn-go" onclick="startQuiz(true)" style="background:linear-gradient(135deg,#7ec8e3,#4aa8de)">🔀 随机抽题练习</button>
     <button class="big-btn btn-review" onclick="showReview()">📖 复习讲解</button>
+    <button class="big-btn btn-go" onclick="startQuiz(false, true)" style="background:linear-gradient(135deg,#ff9a9e,#ff6b6b)">🎯 反复错题加练（<span id="epCount">0</span> 道）</button>
     <div class="fold-sec">
       <div class="fold-head" onclick="toggleFoldSec()">
         <span id="foldHeadT">📦 已折叠的题目（暂时不用练）</span>
@@ -160,8 +161,8 @@
       <div class="stars" id="rStars">⭐⭐⭐</div>
       <h2 id="rTitle">太棒了！</h2>
       <div class="score">本轮得分 <b id="rScore">0</b> / <span id="rTotal">0</span></div>
-      <button class="big-btn btn-go" onclick="startQuiz(false)">🔁 再练一轮</button>
-      <button class="big-btn btn-review" onclick="showReview()">📖 看看讲解</button>
+      <button class="big-btn btn-go" onclick="againQuiz()">🔁 再练一轮</button>
+      <button class="big-btn btn-review" onclick="showReview(quizExtra)">📖 看看讲解</button>
       <button class="big-btn btn-review" onclick="goHome()">🏠 回首页</button>
     </div>
   </div>
@@ -170,7 +171,7 @@
   <div id="review" class="hide">
     <div class="topbar">
       <button class="back" onclick="goHome()">‹ 返回</button>
-      <div class="progress">📖 错题讲解</div>
+      <div class="progress" id="revTitle">📖 错题讲解</div>
     </div>
     <div id="revList"></div>
   </div>
@@ -194,10 +195,12 @@
   <script src="questions15.js"></script>
   <script src="questions16.js"></script>
   <script src="questions17.js"></script>
+  <script src="extra-practice.js"></script>
 <script>
 const TYPE_NAME = { choice:"选择题", judge:"判断题", fill:"选词填空" };
 const LETTERS = ["A","B","C","D"];
 let order = [], idx = 0, score = 0, answered = false;
+let quizExtra = false, reviewExtra = false;
 
 function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function optLabel(o){ return typeof o === "string" ? o : "（看图选择）"; }
@@ -267,11 +270,14 @@ function renderStats(){
   const best = localStorage.getItem("cuotiben_best");
   document.getElementById("stBest").textContent = best === null ? "-" : best + "%";
   document.getElementById("foldHeadC").textContent = foldedList().length;
+  document.getElementById("epCount").textContent = EXTRA_PRACTICE_IDS.length;
 }
 
-function startQuiz(random){
-  const active = QUESTIONS.map((_,i)=>i).filter(i=>!isFolded(QUESTIONS[i]));
-  if(active.length===0){ alert("题目都折叠起来啦！点开下方“已折叠的题目”展开后再练吧～"); return; }
+function startQuiz(random, extraOnly){
+  quizExtra = !!extraOnly;
+  const pool = quizExtra ? QUESTIONS.map((_,i)=>i).filter(i=>EXTRA_PRACTICE_IDS.includes(QUESTIONS[i].id)) : QUESTIONS.map((_,i)=>i);
+  const active = pool.filter(i=>!isFolded(QUESTIONS[i]));
+  if(active.length===0){ alert(quizExtra ? "加练的题目都折叠起来啦！点开下方“已折叠的题目”展开后再练吧～" : "题目都折叠起来啦！点开下方“已折叠的题目”展开后再练吧～"); return; }
   order = active;
   if(random) shuffle(order);
   idx = 0; score = 0;
@@ -280,6 +286,8 @@ function startQuiz(random){
   document.getElementById("quiz").classList.remove("hide");
   renderQ();
 }
+
+function againQuiz(){ startQuiz(false, quizExtra); }
 
 function renderQ(){
   answered = false;
@@ -360,10 +368,13 @@ function showResult(){
   document.getElementById("result").classList.remove("hide");
 }
 
-function showReview(){
+function showReview(extraOnly){
+  reviewExtra = !!extraOnly;
   const list = document.getElementById("revList");
   list.innerHTML = "";
-  QUESTIONS.forEach(q=>{
+  document.getElementById("revTitle").textContent = reviewExtra ? "🎯 加练讲解" : "📖 错题讲解";
+  const qs = reviewExtra ? QUESTIONS.filter(q=>EXTRA_PRACTICE_IDS.includes(q.id)) : QUESTIONS;
+  qs.forEach(q=>{
     const d = document.createElement("div");
     d.className = "rev-item";
     const ansText = typeof q.options[q.answer] === "string"
@@ -381,7 +392,7 @@ function showReview(){
     const fb=document.createElement("button");
     fb.className="mini-btn fold-toggle";
     fb.textContent=isFolded(q)?"↗ 展开此题":"📦 折叠此题";
-    fb.onclick=()=>{ isFolded(q)?unfoldQ(q.id):foldQ(q.id); renderStats(); showReview(); };
+    fb.onclick=()=>{ isFolded(q)?unfoldQ(q.id):foldQ(q.id); renderStats(); showReview(reviewExtra); };
     d.appendChild(fb);
     list.appendChild(d);
   });
