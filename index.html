@@ -195,12 +195,14 @@
   <script src="questions15.js"></script>
   <script src="questions16.js"></script>
   <script src="questions17.js"></script>
+  <script src="questions18.js"></script>
   <script src="extra-practice.js"></script>
 <script>
 const TYPE_NAME = { choice:"选择题", judge:"判断题", fill:"选词填空" };
 const LETTERS = ["A","B","C","D"];
 let order = [], idx = 0, score = 0, answered = false;
 let quizExtra = false, reviewExtra = false;
+function epIds(){ return (typeof EXTRA_PRACTICE_IDS !== "undefined") ? EXTRA_PRACTICE_IDS : []; }
 
 function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function optLabel(o){ return typeof o === "string" ? o : "（看图选择）"; }
@@ -270,13 +272,14 @@ function renderStats(){
   const best = localStorage.getItem("cuotiben_best");
   document.getElementById("stBest").textContent = best === null ? "-" : best + "%";
   document.getElementById("foldHeadC").textContent = foldedList().length;
-  document.getElementById("epCount").textContent = EXTRA_PRACTICE_IDS.length;
+  document.getElementById("epCount").textContent = epIds().length;
 }
 
 function startQuiz(random, extraOnly){
   quizExtra = !!extraOnly;
-  const pool = quizExtra ? QUESTIONS.map((_,i)=>i).filter(i=>EXTRA_PRACTICE_IDS.includes(QUESTIONS[i].id)) : QUESTIONS.map((_,i)=>i);
-  const active = pool.filter(i=>!isFolded(QUESTIONS[i]));
+  if(quizExtra && epIds().length === 0){ alert("加练题表还没加载出来，刷新一下页面再试～"); return; }
+  const pool = quizExtra ? QUESTIONS.map((_,i)=>i).filter(i=>epIds().includes(QUESTIONS[i].id)) : QUESTIONS.map((_,i)=>i);
+  const active = quizExtra ? pool : pool.filter(i=>!isFolded(QUESTIONS[i]));
   if(active.length===0){ alert(quizExtra ? "加练的题目都折叠起来啦！点开下方“已折叠的题目”展开后再练吧～" : "题目都折叠起来啦！点开下方“已折叠的题目”展开后再练吧～"); return; }
   order = active;
   if(random) shuffle(order);
@@ -373,7 +376,7 @@ function showReview(extraOnly){
   const list = document.getElementById("revList");
   list.innerHTML = "";
   document.getElementById("revTitle").textContent = reviewExtra ? "🎯 加练讲解" : "📖 错题讲解";
-  const qs = reviewExtra ? QUESTIONS.filter(q=>EXTRA_PRACTICE_IDS.includes(q.id)) : QUESTIONS;
+  const qs = reviewExtra ? QUESTIONS.filter(q=>epIds().includes(q.id)) : QUESTIONS;
   qs.forEach(q=>{
     const d = document.createElement("div");
     d.className = "rev-item";
