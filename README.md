@@ -1,5 +1,10 @@
 # 📚 诗词错题本
 
+<!-- AI-HANDOFF-ENTRY -->
+**AI接手与运行：**[从这里开始](AI_START_HERE.md) · [安装/启动/数据说明](docs/AI_HANDOFF.md) · [实际验证结果](docs/VERIFICATION.md)。
+<!-- /AI-HANDOFF-ENTRY -->
+
+
 给二年级小朋友用的古诗词错题练习小 App，手机打开就能用。
 
 ## 怎么用
